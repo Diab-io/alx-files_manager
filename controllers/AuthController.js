@@ -8,7 +8,12 @@ class AuthController {
     const authHeaderArr = req.headers.authorization.split(' ');
     const base64Str = authHeaderArr[authHeaderArr.length - 1];
     const decodedStr = Buffer.from(base64Str, 'base64').toString('utf-8');
-    const [email, password] = decodedStr.split(':');
+    const splitBase64 = decodedStr.split(':');
+    if (splitBase64.length !== 2) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const [email, password] = splitBase64;
 
     const user = await dbClient.getCollection('users').findOne({
       $and: [
@@ -24,7 +29,6 @@ class AuthController {
     const key = `auth_${token}`;
     await redisClient.set(key, user._id, 24 * 60 * 60);
     res.status(200).json({ token });
-    console.log(decodedStr);
   }
 
   static async getDisconnect(req, res) {
