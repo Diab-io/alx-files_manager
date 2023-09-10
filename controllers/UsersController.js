@@ -5,7 +5,7 @@ class UsersController {
   static async postNew(req, res) {
     const { email } = req.body;
     const { password } = req.body;
-    const usersCollection = dbClient.getCollection('users');
+    const users = dbClient.getCollection('users');
 
     try {
       if (!email) {
@@ -18,25 +18,25 @@ class UsersController {
       }
 
       // Check if the user already exists
-      const existingUser = await usersCollection.findOne({ email });
-      existingUser.then((user) => {
-        if (user) {
-          res.status(400).json({ error: 'User already exists' });
-        } else {
-          // Hash the password before storing it
-          const hashedPassword = sha1(password);
-          const newUser = {
-            email,
-            password: hashedPassword,
-          };
-          usersCollection.insertOne(newUser).then((result) => {
-            res.status(201).json({ id: result.insertedId, email });
-          }).catch((error) => {
-            console.error('Error inserting user:', error);
-            res.status(500).json({ error: 'Internal server error' });
-          });
-        }
-      });
+      const existingUser = await users.findOne({ email });
+      if (existingUser !== null) {
+        res.status(400).json({ error: 'Already exists' });
+        return;
+      }
+
+      // Hash the password before storing it
+      const hashedPassword = sha1(password);
+
+      // Create a new user document
+      const newUser = {
+        email,
+        password: hashedPassword,
+      };
+
+      // Insert the user into the database
+      const result = await users.insertOne(newUser);
+
+      res.status(201).json({ id: result.insertedId, email });
     } catch (error) {
       console.error('Error:', error);
       res.status(500).json({ error: 'Internal server error' });
