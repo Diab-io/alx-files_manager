@@ -3,15 +3,18 @@ import dbClient from '../utils/db';
 
 class UsersController {
   static async postNew(req, res) {
-    const { email, password } = req.body;
+    const { email } = req.body;
+    const { password } = req.body;
     const usersCollection = dbClient.getCollection('users');
 
     try {
-      if (email === undefined) {
+      if (!email) {
         res.status(400).json({ error: 'Missing email' });
+        return;
       }
-      if (password === undefined) {
+      if (!password) {
         res.status(400).json({ error: 'Missing password' });
+        return;
       }
 
       // Check if the user already exists
@@ -21,7 +24,7 @@ class UsersController {
       }
 
       // Hash the password before storing it
-      const hashedPassword = await sha1(password);
+      const hashedPassword = sha1(password);
 
       // Create a new user document
       const newUser = {
