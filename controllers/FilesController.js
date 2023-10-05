@@ -13,9 +13,9 @@ class FilesController {
       parentId: 0,
       isPublic: false,
     };
-    const token = `auth_${req.header('X-Token')}`
+    const token = `auth_${req.header('X-Token')}`;
     const userId = await redisClient.get(token);
-    const user = await dbClient.getCollection('users').findOne({ _id: new ObjectID(userId) })
+    const user = await dbClient.getCollection('users').findOne({ _id: new ObjectID(userId) });
     const {
       name, type, parentId, isPublic, data,
     } = req.body;
@@ -23,46 +23,40 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     if (!name) {
-      res.status(400).json({ error: 'Missing name' });
-      return;
+      return res.status(400).json({ error: 'Missing name' });
     }
     if (!type) {
-      res.status(400).json({ error: 'Missing type' });
-      return;
+      return res.status(400).json({ error: 'Missing type' });
     }
     if (!data && type !== 'folder') {
-      res.status(400).json({ error: 'Missing data' });
-      return;
+      return res.status(400).json({ error: 'Missing data' });
     }
     if (parentId) {
       const parentFile = await dbClient.getCollection('files').findOne({ _id: new ObjectID(parentId) });
       document.parentId = new ObjectID(parentId);
       if (!parentFile) {
-        res.status(400).json({ error: 'Parent not found' });
-        return;
+        return res.status(400).json({ error: 'Parent not found' });
       }
       if (parentFile && parentFile.type !== 'folder') {
-        res.status(400).json({ error: 'Parent is not a folder' });
-        return;
+        return res.status(400).json({ error: 'Parent is not a folder' });
       }
     }
-    if (isPublic) document.isPublic = false;
+    if (isPublic) document.isPublic = true;
     document.name = name;
     document.type = type;
-    document.userId = new ObjectID(user);
+    document.userId = new ObjectID(userId);
 
     if (type === 'folder') {
       const insertedFolder = await dbClient.getCollection('files').insertOne(document);
       console.log('inserted file', insertedFolder);
-      res.status(201).json({
+      return res.status(201).json({
         id: insertedFolder.insertedId,
-        userId: insertedFolder.userId,
-        name: insertedFolder.name,
-        type: insertedFolder.type,
-        isPublic: insertedFolder.isPublic,
-        parentId: insertedFolder.parentId,
+        userId,
+        name,
+        type,
+        isPublic: document.isPublic,
+        parentId: document.parentId,
       });
-      return;
     }
     const storingFolder = process.env.FOLDER_PATH || '/tmp/files_manager';
     const fileData = Buffer.from(data, 'base64').toString('utf-8');
@@ -82,16 +76,18 @@ class FilesController {
         document.localPath = localPath;
         console.log(document);
         const insertedFile = await dbClient.getCollection('files').insertOne(document);
-        res.status(201).json({
+        return res.status(201).json({
           id: insertedFile.insertedId,
-          userId: insertedFile.userId,
-          name: insertedFile.name,
-          type: insertedFile.type,
-          isPublic: insertedFile.isPublic,
-          parentId: insertedFile.parentId,
+          userId,
+          name,
+          type,
+          isPublic: document.isPublic,
+          parentId: document.parentId,
         });
       }
+      return 0;
     });
+    return 0;
   }
 }
 
