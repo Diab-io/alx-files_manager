@@ -13,18 +13,15 @@ class FilesController {
       parentId: 0,
       isPublic: false,
     };
-    console.log(req.headers);
-    const user = await redisClient.get(`auth_${req.headers['x-token']}`);
-    console.log('user', user);
-    console.log(req.body);
+    const token = `auth_${req.header('X-Token')}`
+    const userId = await redisClient.get(token);
+    const user = await dbClient.getCollection('users').findOne({ _id: new ObjectID(userId) })
     const {
       name, type, parentId, isPublic, data,
     } = req.body;
-
     if (!user) {
-      res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
-
     if (!name) {
       res.status(400).json({ error: 'Missing name' });
       return;
@@ -39,7 +36,6 @@ class FilesController {
     }
     if (parentId) {
       const parentFile = await dbClient.getCollection('files').findOne({ _id: new ObjectID(parentId) });
-      console.log('parent file', parentFile);
       document.parentId = new ObjectID(parentId);
       if (!parentFile) {
         res.status(400).json({ error: 'Parent not found' });
@@ -55,7 +51,6 @@ class FilesController {
     document.type = type;
     document.userId = new ObjectID(user);
 
-    console.log(document);
     if (type === 'folder') {
       const insertedFolder = await dbClient.getCollection('files').insertOne(document);
       console.log('inserted file', insertedFolder);
