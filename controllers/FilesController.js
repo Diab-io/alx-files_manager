@@ -139,7 +139,7 @@ class FilesController {
     const files = await dbClient.getCollection('files')
       .find({
         userId: new ObjectID(user._id),
-        parentId: parentId === 0 ? parentId : new ObjectID(parentId),
+        ...(parentId === 0 ? {} : { parentId: new ObjectID(parentId) }),
       })
       .skip(page * perPage)
       .limit(perPage)
